@@ -1,0 +1,266 @@
+<!-- ============================ DETECTION ============================ -->
+<div class="sec-head" id="detect">
+  <div class="eyebrow">03 — The other half</div>
+  <h2>Detection is just a coin-flip test</h2>
+  <p>The detector never sees the model. It takes the text, recomputes every green list from the key, counts how many words landed green, and asks the oldest question in statistics: could a fair coin have done this?</p>
+</div>
+
+<div class="math">
+  <span class="lbl">Detection — the one-sided test</span>
+  Under the null hypothesis "this text was not written with the key",<br>
+  each token is green with probability γ, independently.&nbsp; So |s|<sub>G</sub> ~ Binomial(T, γ), and<br><br>
+  <b>z</b> = ( |s|<sub>G</sub> − γT ) ⁄ √( T·γ·(1−γ) ) &nbsp;&nbsp;&nbsp; p = 1 − Φ(z)
+</div>
+
+<div class="prose">
+  <p>A z of 4 means the green count sits four standard deviations above what chance allows — a one-in-thirty-thousand coincidence. A z of 8 is one in <span class="mono">10¹⁵</span>. There is no machine learning in the detector; it is a proportion test you could run in a spreadsheet, which is exactly why it is trustworthy in a way that "AI detector" classifiers are not.</p>
+  <p>Paste anything into the bench below. Your own writing will sit near zero, because your writing has no relationship to the key.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate C</span>
+    <h3>Detector bench</h3>
+    <span class="sub">text in, z-score out — no model required</span>
+  </div>
+  <div class="plate-body stack g16">
+    <div class="flexrow">
+      <span class="eyebrow">Load a sample</span>
+      <button class="chip" data-samp="wm">Watermarked (KGW)</button>
+      <button class="chip" data-samp="synth">Watermarked (SynthID)</button>
+      <button class="chip" data-samp="plain">AI text, no watermark</button>
+      <button class="chip" data-samp="human">Human writing</button>
+      <button class="chip" data-samp="edited">Watermarked, lightly edited</button>
+      <button class="chip" data-samp="para">Watermarked, paraphrased</button>
+      <button class="chip" id="pClive" data-samp="live" hidden>Live text from a real LLM</button>
+    </div>
+    <textarea id="pCtext" rows="7" spellcheck="false" aria-label="Text to analyse"></textarea>
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pCmethod">Scheme to test for</label>
+        <div class="seg" id="pCmethod" role="group" aria-label="Scheme"></div>
+      </div>
+      <div class="ctl">
+        <label for="pCkey">Key</label>
+        <input type="text" id="pCkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pCdedup">Repeated contexts</label>
+        <div class="seg" id="pCdedup" role="group" aria-label="Repeated context handling"></div>
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn" id="pCrun" type="button">Analyse</button>
+      </div>
+    </div>
+
+    <div class="tiles" id="pCtiles"></div>
+    <div class="verdict" id="pCverdict"><span class="dot"></span><span>Load a sample or paste text, then press Analyse.</span></div>
+
+    <div class="stack g8">
+      <span class="eyebrow">Per-token evidence</span>
+      <div class="stream" id="pCstream"></div>
+      <div class="legend">
+        <span><i style="background:var(--green-wash);border:1px solid var(--green)"></i>scored above chance</span>
+        <span><i style="background:var(--rule)"></i>scored below chance</span>
+        <span><i style="background:transparent;border:1px dotted var(--ink-3)"></i>dropped — this context has already been counted</span>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">Try the wrong key. Try your own paragraph. Try the same text under a scheme it wasn't marked with. All three should collapse to <b>z ≈ 0</b> — that collapse is the whole guarantee, and it is what keeps the false-positive rate calculable rather than guessed at.</div>
+</div></div>
+
+<div class="callout">
+  <span class="lbl">Why repeated contexts are thrown away</span>
+  The PRF is deterministic: the same context window followed by the same token yields the same green verdict every time it occurs. Counting it twice adds a second copy of one observation and pretends it is two, which inflates z on any repetitive text. Real detectors deduplicate. Switch the control above to <span class="term">count every token</span> and run the factual or code sample — the z-score jumps, and every point of it is fake.
+</div>
+
+<!-- ============================ DISTORTION ============================ -->
+<div class="sec-head" id="distortion">
+  <div class="eyebrow">04 — The first objection</div>
+  <h2>You just made the model worse</h2>
+  <p>Adding δ to a logit is not free. Words that should have been rare become less rare. Over a long passage that is a real, measurable change in what the model is willing to say — and the first place it hurts is precisely where quality matters most.</p>
+</div>
+
+<div class="prose">
+  <p>The fix is a genuinely elegant piece of sleight of hand. Do not touch the distribution at all. Touch the <em>dice</em>.</p>
+  <p>Sampling from a distribution requires a source of randomness. Nothing says that source has to be true randomness — a pseudorandom stream derived from a secret key is, to any observer without the key, indistinguishable from noise. Sample with those numbers instead, and the sequence of draws now correlates with a stream only the key-holder can regenerate. Methods built this way are called <strong>distortion-free</strong>.</p>
+</div>
+
+<blockquote class="pull">
+  Imagine playing Monopoly, and instead of rolling dice you read digits from π, starting a million places in. The game plays identically. But lay out every move afterwards and compare it with π, and you can prove which game was played.
+  <cite>Anthropic's analogy for distortion-free watermarking, August 2026</cite>
+</blockquote>
+
+<div class="callout">
+  <span class="lbl">The nuance almost every explainer drops</span>
+  "Distortion-free" does <strong>not</strong> mean the model's next-token distribution is untouched at the position in front of you. It cannot: once the key and the context are fixed, the pseudorandom numbers are fixed too, and the choice at that position becomes lopsided — for pure Gumbel it becomes fully deterministic. The guarantee is an average. Over the key — equivalently, across the thousands of different contexts a real passage moves through — the frequencies come back to exactly <span class="term">p</span>. The dice are loaded at every individual roll and fair over the whole game. Plate D measures both views, and they disagree sharply.
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate D</span>
+    <h3>Did the distribution survive?</h3>
+    <span class="sub">Monte Carlo — draw the same position thousands of times</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pDctx">Measured</label>
+        <div class="seg" id="pDctx" role="group" aria-label="Context regime"></div>
+      </div>
+      <div class="ctl">
+        <label for="pDn">Samples per scheme <b id="pDnV">8,000</b></label>
+        <input type="range" id="pDn" min="500" max="30000" step="500" value="8000">
+      </div>
+      <div class="ctl">
+        <label for="pDdelta">KGW δ <b id="pDdeltaV">2.0</b></label>
+        <input type="range" id="pDdelta" min="0" max="6" step="0.25" value="2">
+      </div>
+      <div class="ctl">
+        <label for="pDlayers">SynthID layers m <b id="pDlayersV">3</b></label>
+        <input type="range" id="pDlayers" min="1" max="5" step="1" value="3">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn" id="pDrun" type="button">Run</button>
+      </div>
+    </div>
+    <div class="chartwrap" id="pDchart"></div>
+    <div class="legend">
+      <span><i style="background:var(--s1)"></i>true p (what the model meant)</span>
+      <span><i style="background:var(--s2)"></i>KGW green list</span>
+      <span><i style="background:var(--s3)"></i>SynthID tournament</span>
+      <span><i style="background:var(--s4)"></i>Gumbel-max</span>
+    </div>
+    <p class="small dim" style="font-family:var(--serif)" id="pDnote"></p>
+    <div class="tiles" id="pDtiles"></div>
+    <div class="tblwrap"><table class="data" id="pDtable"></table></div>
+  </div>
+  <div class="plate-foot">Flip <b>Measured</b> between the two regimes and watch the story invert. At a single fixed context every scheme distorts, Gumbel most of all — it collapses to one token. Averaged across contexts, Gumbel and the tournament return to <b>p</b> to four decimal places while KGW keeps a residue that grows with δ. That residue is the quality you spent to buy detection strength; the other two bought theirs with compute instead.</div>
+</div></div>
+
+<!-- ============================ GUMBEL ============================ -->
+<div class="sec-head" id="gumbel">
+  <div class="eyebrow">05 — 2022 · Aaronson; Kuditipudi et al.</div>
+  <h2>The Gumbel-max trick: same odds, rigged dice</h2>
+  <p>The cleanest distortion-free scheme. Give every candidate token a pseudorandom number rᵢ ∈ [0,1) derived from the key and the context, then pick the candidate maximising rᵢ<sup>1/pᵢ</sup>.</p>
+</div>
+
+<div class="math">
+  <span class="lbl">Generation — argmax instead of a draw</span>
+  r<sub>i</sub> = PRF( <b>key</b>, token<sub>t−1</sub>, candidate<sub>i</sub> ) ∈ [0,1)<br>
+  next token = arg max<sub>i</sub> &nbsp; r<sub>i</sub><sup>1/p<sub>i</sub></sup><br><br>
+  <span style="color:var(--ink-3)">Classical result: this selects token i with probability exactly p<sub>i</sub>.</span>
+</div>
+
+<div class="prose">
+  <p>The exponent does the work. A high-probability token has <span class="mono">1/pᵢ</span> small, so <span class="mono">rᵢ<sup>1/pᵢ</sup></span> stays close to its own r — it barely needs luck. A rare token is raised to a huge power, crushing its score to near zero unless it drew a number startlingly close to 1. Weigh those two effects and the win probability comes out at exactly pᵢ. No approximation, no distortion.</p>
+  <p>Detection inverts it. Recompute rᵢ for the token that actually appears. In human text those numbers are just noise: uniform, mean <span class="mono">0.5</span>. In watermarked text every token is a <em>winner</em>, and winners drew high. The mean drifts above <span class="mono">0.5</span>, and the same z-test as before applies.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate E</span>
+    <h3>The rigged draw, step by step</h3>
+    <span class="sub">watch the second-favourite win on a lucky number</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pEkey">Key</label>
+        <input type="text" id="pEkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pEctx">Context window</label>
+        <input type="text" id="pEctx" value="the quiet river" size="18" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn ghost" id="pEnudge" type="button">New context</button>
+      </div>
+    </div>
+    <div class="two-a">
+      <div class="tblwrap"><table class="data" id="pEtable"></table></div>
+      <div class="stack g12">
+        <div class="panel stack g8">
+          <span class="eyebrow">Determinism — the catch</span>
+          <p class="small dim" style="font-family:var(--serif)">Given the key and the context, the winner is fixed. There is no randomness left to draw. Ask the same question twice and Gumbel returns the same sentence twice.</p>
+          <div class="flexrow">
+            <button class="btn ghost" id="pEresample" type="button">Ask again</button>
+            <span class="mono small" id="pEresampleOut"></span>
+          </div>
+        </div>
+        <div class="tiles" id="pEtiles"></div>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">Determinism is why a chat product cannot ship plain Gumbel. Users regenerate a reply expecting a different answer and get a photocopy. Fixing it means salting the key per request — which weakens detection, because the detector must then try every salt.</div>
+</div></div>
+
+<!-- ============================ SYNTHID ============================ -->
+<div class="sec-head" id="synthid">
+  <div class="eyebrow">06 — 2024 · DeepMind, <i>Nature</i> · shipped in Gemini, then in Claude</div>
+  <h2>Tournament sampling</h2>
+  <p>SynthID-Text keeps real randomness and spends the key somewhere else entirely: on refereeing. Draw 2<sup>m</sup> candidates from the true distribution, then run a knockout bracket in which the key decides every match.</p>
+</div>
+
+<div class="math">
+  <span class="lbl">Generation — a bracket, not a draw</span>
+  1.&nbsp; sample 2<sup>m</sup> candidates i.i.d. from p &nbsp;<span style="color:var(--ink-3)">(repeats allowed — this is the crucial part)</span><br>
+  2.&nbsp; for each layer ℓ = 1…m: &nbsp; g<sub>ℓ</sub>(token) = PRF( <b>key</b>, ℓ, token<sub>t−1</sub>, token ) mod 2<br>
+  3.&nbsp; in every pairing, the larger g<sub>ℓ</sub> advances; ties broken by a fair coin<br>
+  4.&nbsp; the survivor is emitted
+</div>
+
+<div class="prose">
+  <p>Why the distribution survives: entries are drawn from p, <em>with replacement</em>. A word with probability 0.6 walks into the bracket holding roughly 60% of the seats. It wins more often because it is there more often, not because the key favours it. DeepMind proved token-level distribution preservation exactly for the two-candidates-per-match, binary-g configuration.</p>
+  <p>Detection is the same shape as everything else on this page: recompute all m g-values for every token in the text and average them. Under the null that mean is <span class="mono">0.5</span>. A tournament survivor is a token that won m coin-flip matches it was chosen to win, so the mean climbs — and with m layers per token, one token now donates m bits of evidence instead of one.</p>
+  <p>And unlike Gumbel, real sampling is still in the loop. Regenerate the same prompt and you get a genuinely different answer that is still watermarked. That is the reason this is the family that shipped.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate F</span>
+    <h3>The bracket</h3>
+    <span class="sub">2<sup>m</sup> entries · m layers · one survivor</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pFkey">Key</label>
+        <input type="text" id="pFkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pFlayers">Layers m <b id="pFlayersV">2</b> &nbsp;→&nbsp; <b id="pFentries">4</b> entries</label>
+        <input type="range" id="pFlayers" min="1" max="4" step="1" value="2">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn" id="pFdraw" type="button">Draw a new bracket</button>
+      </div>
+    </div>
+    <div class="bracket" id="pFbracket"></div>
+    <div class="legend">
+      <span><i style="background:var(--green-wash);border:1px solid var(--green)"></i>emitted token</span>
+      <span><span style="color:var(--amber)">⚖</span> equal g-values — the key has no opinion, so that match is a fair coin flip</span>
+      <span class="faint">a token appearing twice is not a bug: entries are drawn from p with replacement</span>
+    </div>
+    <div class="two">
+      <div class="stack g10">
+        <span class="eyebrow">Seats in the bracket vs. true probability</span>
+        <div class="chartwrap" id="pFchart"></div>
+        <div class="legend">
+          <span><i style="background:var(--s1)"></i>true p</span>
+          <span><i style="background:var(--s3)"></i>share of entries this draw</span>
+        </div>
+      </div>
+      <div class="stack g10">
+        <span class="eyebrow">Evidence yield</span>
+        <div class="tiles" id="pFtiles"></div>
+        <p class="small dim" style="font-family:var(--serif)" id="pFnote"></p>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">More layers means more bits per token and a sharper detector — but also 2<sup>m</sup> samples drawn per token. The published system runs a small m; the point of the design is that <b>m trades statistical power against compute, never against quality.</b></div>
+</div></div>

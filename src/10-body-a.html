@@ -1,0 +1,190 @@
+<header id="rail">
+  <div class="inner">
+    <span class="mark">The Green List</span>
+    <nav id="nav" aria-label="Sections">
+      <a href="#room">the room</a>
+      <a href="#kgw">green lists</a>
+      <a href="#detect">detection</a>
+      <a href="#distortion">distortion</a>
+      <a href="#gumbel">gumbel</a>
+      <a href="#synthid">tournament</a>
+      <a href="#lab">the lab</a>
+      <a href="#entropy">capacity</a>
+      <a href="#attacks">attacks</a>
+      <a href="#errors">false alarms</a>
+      <a href="#semantic">semantics</a>
+      <a href="#multibit">payloads</a>
+      <a href="#posthoc">live models</a>
+      <a href="#claims">what it proves</a>
+    </nav>
+    <button id="themeBtn" type="button" aria-label="Switch colour theme">Theme</button>
+    <div id="progress"></div>
+  </div>
+</header>
+
+<!-- ============================ HERO ============================ -->
+<div class="wrap">
+<section id="hero">
+  <div class="kicker">
+    <span class="eyebrow">A working explainer</span><span class="bar"></span>
+    <span class="eyebrow">every number on this page is computed live</span>
+  </div>
+  <h1>A statistical bias<br>you cannot <em>see</em>,<br>and cannot un-write.</h1>
+  <p class="lede">Since August 2026 the text Claude produces carries a machine-readable watermark. Not an invisible character, not a hidden metadata field — nothing has been <em>added</em> to the text at all. What was changed is the source of the randomness the model uses to pick each word.</p>
+  <p class="lede">This page implements the whole family of techniques — green lists, Gumbel sampling, SynthID's tournament, semantic hashing, multi-bit payloads — in a toy language model you can drive. Turn the key, generate, then try to wash the mark out.</p>
+  <p class="lede">The toy model is there because every one of those schemes needs to reach inside the sampling loop, and no API will let you. One technique doesn't need that — and the <a href="#posthoc">last plate</a> runs it against <strong>real language models</strong>, live.</p>
+
+  <div class="lampwrap">
+    <div class="lamp-head">
+      <span class="eyebrow">Fig. 0 — hold the sheet to the light</span>
+      <span class="spacer"></span>
+      <div class="seg" id="lampMode" role="group" aria-label="Sample"></div>
+      <button class="btn ghost" id="lampAll" type="button" aria-pressed="false">Reveal all</button>
+    </div>
+    <div class="lamp-body">
+      <div id="lampGlow" aria-hidden="true"></div>
+      <div id="lampText"></div>
+    </div>
+    <div class="lamp-foot">
+      <span class="eyebrow">Green-list words</span>
+      <span class="mono" id="lampFrac">—</span>
+      <span class="eyebrow">z-score</span>
+      <span class="mono" id="lampZ" style="font-size:15px;font-weight:600">—</span>
+      <span class="eyebrow">p-value</span>
+      <span class="mono" id="lampP">—</span>
+      <span class="spacer"></span>
+      <span class="tiny faint mono" id="lampHint">move the pointer over the text</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================ THE ROOM ============================ -->
+<div class="sec-head" id="room">
+  <div class="eyebrow">01 — The premise</div>
+  <h2>Text is discrete. So where is there room to hide anything?</h2>
+  <p>With an image you can nudge pixel values by a fraction of a shade and no eye will catch it. A sentence has no such slack: swap one word and the meaning moves. For years that was the standard argument for why text watermarking could not work.</p>
+</div>
+
+<div class="prose">
+  <p>The argument has a hole in it. A language model does not emit <em>the</em> next word; it emits a <strong>probability distribution</strong> over the next word, then draws from it. At a great many positions that distribution is genuinely flat-ish — "the river <span class="term">slid</span> / <span class="term">drifted</span> / <span class="term">turned</span> past the town" are all fine. The model is effectively tossing a weighted coin, and nobody downstream can tell which face came up or whether the toss was fair.</p>
+  <p>That is the room. The watermark does not add anything to the text. It replaces the coin.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate A</span>
+    <h3>One position, one distribution</h3>
+    <span class="sub">where the freedom actually lives</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pAsel">Position type</label>
+        <div class="seg" id="pAsel" role="group" aria-label="Position type"></div>
+      </div>
+      <div class="ctl">
+        <label for="pAtemp">Temperature <b id="pAtempV">1.00</b></label>
+        <input type="range" id="pAtemp" min="0.15" max="1.8" step="0.05" value="1">
+      </div>
+    </div>
+    <div class="two-a">
+      <div class="stack g12">
+        <div class="mono small dim" id="pActx"></div>
+        <div class="tblwrap"><table class="data" id="pAtable"></table></div>
+      </div>
+      <div class="stack g12">
+        <div class="tiles" id="pAtiles"></div>
+        <div class="panel stack g8">
+          <span class="eyebrow">Reading</span>
+          <p class="small dim" id="pAnote" style="font-family:var(--serif)"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">Entropy <b>H</b> is the honest measure of watermark capacity at a position: <b>H = −Σ pᵢ log₂ pᵢ</b>. At <b>H = 0</b> there is exactly one thing the model can say and no key on earth can influence it. Temperature widens or collapses the distribution — and with it, the room.</div>
+</div></div>
+
+<div class="prose">
+  <p>Scroll that control down to a factual position and the entropy goes to zero. This single fact governs everything that follows: <strong>watermark strength is not a property of the algorithm, it is a property of the text.</strong> A page of flowing prose carries a strong mark. A page of arithmetic carries none.</p>
+</div>
+
+<!-- ============================ KGW ============================ -->
+<div class="sec-head" id="kgw">
+  <div class="eyebrow">02 — 2023 · Kirchenbauer, Geiping, Wen et al.</div>
+  <h2>The green list</h2>
+  <p>The founding trick, and still the clearest one to reason about. Before each token, hash the preceding few tokens together with a secret key. Use that hash to split the entire vocabulary in two: a green list and a red list. Then quietly add a bonus to every green word's logit.</p>
+</div>
+
+<div class="math">
+  <span class="lbl">Generation — the biased draw</span>
+  seed<sub>t</sub> = PRF( <b>key</b>, token<sub>t−H</sub> … token<sub>t−1</sub> )<br>
+  G<sub>t</sub> = a random γ-fraction of the vocabulary, chosen by seed<sub>t</sub><br>
+  ℓ̃<sub>t</sub>[i] = ℓ<sub>t</sub>[i] + <b>δ</b> · 1[ i ∈ G<sub>t</sub> ] &nbsp;&nbsp;→&nbsp;&nbsp; sample from softmax(ℓ̃<sub>t</sub>)
+</div>
+
+<div class="prose">
+  <p>Two knobs. <span class="term">γ</span> is how much of the vocabulary is green — a half, a quarter. <span class="term">δ</span> is how hard the thumb presses on the scale. Because the split is re-drawn from the preceding tokens at every single step, the green list is a different arbitrary half of the dictionary at every position, and no fixed word is ever "the AI word".</p>
+  <p>A third knob hides in the seed: <span class="term">H</span>, how many previous tokens go into the hash. The original paper uses one. This page uses four, matching SynthID-Text — a wider window means far more distinct contexts, which matters enormously once you see the detector in action. It also makes the mark more brittle, since editing one token corrupts the context of the next H as well.</p>
+  <p>The consequence that makes it useful: <strong>detection needs the key and nothing else.</strong> Not the model, not the prompt, not the logits. Anyone holding the key can recompute every green list from the text itself.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate B</span>
+    <h3>The split, and the price of it</h3>
+    <span class="sub">key + context window → a fresh partition</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pBkey">Secret key</label>
+        <input type="text" id="pBkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pBctx">Context window</label>
+        <input type="text" id="pBctx" value="the quiet river" size="18" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pBgamma">γ &nbsp;green fraction <b id="pBgammaV">0.50</b></label>
+        <input type="range" id="pBgamma" min="0.1" max="0.9" step="0.05" value="0.5">
+      </div>
+      <div class="ctl">
+        <label for="pBdelta">δ &nbsp;logit bonus <b id="pBdeltaV">2.0</b></label>
+        <input type="range" id="pBdelta" min="0" max="8" step="0.25" value="2">
+      </div>
+    </div>
+
+    <div class="panel stack g10">
+      <span class="eyebrow">The vocabulary, partitioned by this key and this context</span>
+      <div class="vocab" id="pBvocab"></div>
+      <div class="legend" style="margin-top:4px">
+        <span><i style="background:var(--green-wash);border:1px solid var(--green)"></i>green list — nudged up</span>
+        <span><i style="background:var(--red-wash);border:1px solid var(--red)"></i>red list — nudged down</span>
+        <span class="faint">change one letter of the key or the context and the whole split is redrawn</span>
+      </div>
+    </div>
+
+    <div class="two">
+      <div class="stack g10">
+        <span class="eyebrow">What δ does to one real distribution</span>
+        <div class="chartwrap" id="pBchart"></div>
+        <div class="legend">
+          <span><i style="background:var(--s1)"></i>original p</span>
+          <span><i style="background:var(--s2)"></i>after the green bonus</span>
+          <span class="faint">candidate names in <span style="color:var(--green)">green</span> are on the green list</span>
+        </div>
+      </div>
+      <div class="stack g10">
+        <span class="eyebrow">The bill</span>
+        <div class="tiles" id="pBtiles"></div>
+        <p class="small dim" id="pBnote" style="font-family:var(--serif)"></p>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">This is the distortion the next twenty years of research is about. At <b>δ = 0</b> nothing happens and nothing is detectable. Push δ up and the mark gets loud, but the model is now measurably not saying what it would have said — visible above as <b>KL divergence</b>, the information-theoretic gap between the two bars.</div>
+</div></div>
+
+<div class="callout">
+  <span class="lbl">Implementation note</span>
+  Real KGW seeds a PRNG from the context window and permutes the whole vocabulary, taking the first γ|V| entries as green. This page uses the equivalent hash-per-candidate form — <span class="term">PRF(key, context, candidate) &lt; γ</span> — which gives each token an independent γ-chance of being green under the same context. Same statistics, far less arithmetic per keystroke.
+</div>

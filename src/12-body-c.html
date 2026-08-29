@@ -1,0 +1,241 @@
+<!-- ============================ THE LAB ============================ -->
+<div class="sec-head" id="lab">
+  <div class="eyebrow">07 — Everything at once</div>
+  <h2>The lab</h2>
+  <p>A toy language model with real per-position distributions. Pick a scheme, turn the key, generate — then click any word to see the distribution it was drawn from, what the key did to that draw, and whether the outcome actually changed.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate G</span>
+    <h3>Generate &amp; inspect</h3>
+    <span class="sub">click any word</span>
+  </div>
+  <div class="plate-body stack g16">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pGgram">Text type</label>
+        <div class="seg" id="pGgram" role="group" aria-label="Text type"></div>
+      </div>
+      <div class="ctl">
+        <label for="pGmethod">Scheme</label>
+        <div class="seg" id="pGmethod" role="group" aria-label="Scheme"></div>
+      </div>
+    </div>
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pGkey">Key</label>
+        <input type="text" id="pGkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pGlen">Length <b id="pGlenV">160</b> tokens</label>
+        <input type="range" id="pGlen" min="30" max="500" step="10" value="160">
+      </div>
+      <div class="ctl">
+        <label for="pGtemp">Temperature <b id="pGtempV">1.00</b></label>
+        <input type="range" id="pGtemp" min="0.2" max="1.6" step="0.05" value="1">
+      </div>
+      <div class="ctl">
+        <label for="pGdelta">δ <b id="pGdeltaV">2.0</b></label>
+        <input type="range" id="pGdelta" min="0" max="6" step="0.25" value="2">
+      </div>
+      <div class="ctl">
+        <label for="pGgamma">γ <b id="pGgammaV">0.50</b></label>
+        <input type="range" id="pGgamma" min="0.15" max="0.85" step="0.05" value="0.5">
+      </div>
+      <div class="ctl">
+        <label for="pGlayers">m <b id="pGlayersV">3</b></label>
+        <input type="range" id="pGlayers" min="1" max="5" step="1" value="3">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <div class="flexrow">
+          <button class="btn" id="pGgen" type="button">Generate</button>
+          <button class="btn ghost" id="pGsend" type="button">Send to detector</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tiles" id="pGtiles"></div>
+
+    <div class="two-a">
+      <div class="stack g8">
+        <div class="flexrow">
+          <span class="eyebrow">Output</span>
+          <span class="spacer"></span>
+          <span class="legend"><span><i style="background:var(--green-wash);border:1px solid var(--green)"></i>scores above chance</span><span><i style="background:transparent;border-bottom:2px solid var(--green)"></i>the key changed this word</span><span class="faint">faded = forced by syntax, or a repeated context</span></span>
+        </div>
+        <div class="stream" id="pGstream"></div>
+      </div>
+      <div class="stack g10">
+        <span class="eyebrow">Token inspector</span>
+        <div class="panel stack g10" id="pGinspect">
+          <p class="small faint" style="font-family:var(--serif)">Click a word in the output to open it up.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">The <b>changed</b> counter uses a coupled draw: the watermarked and unwatermarked samplers are handed the identical uniform, so a token is only counted as changed when the key genuinely flipped that outcome. Typically a small minority of positions — the watermark is a whisper repeated hundreds of times, not a shout.</div>
+</div></div>
+
+<!-- ============================ CAPACITY ============================ -->
+<div class="sec-head" id="entropy">
+  <div class="eyebrow">08 — The budget</div>
+  <h2>Entropy is the currency, and most text is poor</h2>
+  <p>Every claim about watermark strength is really a claim about how much freedom the text had. Switch the lab to <span class="term">Factual reference</span> and the z-score falls through the floor — not because the algorithm failed, but because there was nothing to bias.</p>
+</div>
+
+<div class="prose">
+  <p>Anthropic's own documentation makes the point with an example: in "Newton's principal work is <em>Principia</em> …", the only word that can follow is <em>Mathematica</em>. There is no second candidate, so there is no nudge, so that token contributes pure noise to the detector — it still gets <em>counted</em>, diluting the statistic. Low-entropy passages do not merely fail to help; they actively drag the average back toward chance.</p>
+  <p>Same for arithmetic, quoted material, code, structured formats, and — critically — anything where a human wrote most of the words and the model only edited. This is why the honest failure mode of text watermarking is a <em>false negative</em>, and why short texts are hopeless: 20 tokens simply cannot outvote the noise.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate H</span>
+    <h3>Capacity map</h3>
+    <span class="sub">where the mark can land, and where it cannot</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pHgram">Text type</label>
+        <div class="seg" id="pHgram" role="group" aria-label="Text type"></div>
+      </div>
+      <div class="ctl">
+        <label for="pHkey">Key</label>
+        <input type="text" id="pHkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn" id="pHrun" type="button">Measure</button>
+      </div>
+    </div>
+
+    <div class="stack g8">
+      <span class="eyebrow">Per-token entropy — bar height is the room available at that position</span>
+      <div class="chartwrap" id="pHstrip"></div>
+    </div>
+
+    <div class="two">
+      <div class="stack g10">
+        <span class="eyebrow">Detection strength by text type (800 tokens, SynthID m=3)</span>
+        <div class="chartwrap" id="pHchart"></div>
+        <div class="legend"><span><i style="background:var(--s1)"></i>z-score reached</span></div>
+      </div>
+      <div class="stack g10">
+        <span class="eyebrow">This sample</span>
+        <div class="tiles" id="pHtiles"></div>
+        <p class="small dim" style="font-family:var(--serif)" id="pHnote"></p>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">"Effective tokens" counts only positions where the model had a real choice. The detector, of course, cannot compute that column — it has no idea which words were forced. It scores everything, which is why the achieved z tracks the <b>effective</b> count while the confidence interval is set by the <b>total</b>.</div>
+</div></div>
+
+<!-- ============================ ATTACKS ============================ -->
+<div class="sec-head" id="attacks">
+  <div class="eyebrow">09 — The unresolved problem</div>
+  <h2>Paraphrase</h2>
+  <p>Every scheme on this page — green lists, Gumbel, tournament — encodes the mark in the <em>surface identity of tokens</em>. Replace the tokens and keep the meaning, and the evidence goes with them. This is not a bug anyone has fixed; it is the open front of the field.</p>
+</div>
+
+<div class="prose">
+  <p>The 2023 result that set the agenda: run generated text through a dedicated paraphrase model and essentially every detector of the day collapsed. The attack needs no key, no knowledge of the scheme, and no skill — a second language model rewriting the passage is sufficient.</p>
+  <p>The bench below runs four attacks against a live watermarked passage. Watch which ones matter.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate I</span>
+    <h3>Attack bench</h3>
+    <span class="sub">how much editing does it take to wash the mark out?</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pImethod">Scheme under attack</label>
+        <div class="seg" id="pImethod" role="group" aria-label="Scheme"></div>
+      </div>
+      <div class="ctl">
+        <label for="pIattack">Attack</label>
+        <div class="seg" id="pIattack" role="group" aria-label="Attack"></div>
+      </div>
+      <div class="ctl">
+        <label for="pIrate">Strength <b id="pIrateV">15%</b></label>
+        <input type="range" id="pIrate" min="0" max="100" step="1" value="15">
+      </div>
+      <div class="ctl">
+        <label for="pIlen">Passage length <b id="pIlenV">300</b></label>
+        <input type="range" id="pIlen" min="60" max="600" step="20" value="300">
+      </div>
+    </div>
+
+    <div class="tiles" id="pItiles"></div>
+    <div class="verdict" id="pIverdict"><span class="dot"></span><span></span></div>
+
+    <div class="two-a">
+      <div class="stack g8">
+        <span class="eyebrow">The attacked text</span>
+        <div class="stream" id="pIstream" style="max-height:230px"></div>
+        <div class="legend"><span><i style="background:var(--red-wash);border:1px solid var(--red)"></i>token replaced by the attacker</span></div>
+      </div>
+      <div class="stack g8">
+        <span class="eyebrow">z-score vs. attack strength</span>
+        <div class="chartwrap" id="pIchart"></div>
+        <div class="legend"><span class="faint">dashed line = the z ≈ 4 evidentiary threshold</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">The <b>adaptive</b> attack is the interesting one. It is not random editing: it recomputes the g-values and deliberately chooses replacements the detector will score <i>low</i>. At the same edit rate it destroys far more evidence than blind paraphrase — the published version of this idea against SynthID is the 2026 layer-inflation attack.</div>
+</div></div>
+
+<!-- ============================ ERRORS ============================ -->
+<div class="sec-head" id="errors">
+  <div class="eyebrow">10 — The part that gets people fired</div>
+  <h2>Thresholds, false alarms, and length</h2>
+  <p>A detector is a threshold on z. Move it down and you catch more marked text and start accusing innocents; move it up and you miss real cases. There is no setting that does both, and the arithmetic is completely explicit.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate J</span>
+    <h3>Where to put the line</h3>
+    <span class="sub">the null distribution never goes away</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pJlen">Text length <b id="pJlenV">200</b> tokens</label>
+        <input type="range" id="pJlen" min="15" max="600" step="5" value="200">
+      </div>
+      <div class="ctl">
+        <label for="pJthr">Threshold z ≥ <b id="pJthrV">4.0</b></label>
+        <input type="range" id="pJthr" min="1" max="8" step="0.1" value="4">
+      </div>
+      <div class="ctl">
+        <label for="pJfrac">Fraction of the text actually from the model <b id="pJfracV">100%</b></label>
+        <input type="range" id="pJfrac" min="5" max="100" step="5" value="100">
+      </div>
+    </div>
+    <div class="two-a">
+      <div class="stack g10">
+        <span class="eyebrow">10,000 simulated documents</span>
+        <div class="chartwrap" id="pJhist"></div>
+        <div class="legend">
+          <span><i style="background:var(--s1)"></i>unmarked text (the null)</span>
+          <span><i style="background:var(--s2)"></i>watermarked text</span>
+        </div>
+      </div>
+      <div class="stack g10">
+        <div class="tiles" id="pJtiles"></div>
+        <div class="verdict" id="pJverdict"><span class="dot"></span><span></span></div>
+      </div>
+    </div>
+    <div class="stack g10">
+      <span class="eyebrow">Evidence accumulates with the square root of length</span>
+      <div class="chartwrap" id="pJcurve"></div>
+    </div>
+  </div>
+  <div class="plate-foot">Drag the length down to 40 tokens and watch the two distributions merge. This is the mathematical content of "the signal is insufficient for short texts": a paragraph-length answer, an email, a chat reply, a commit message — none of them carry enough draws to separate from chance at <b>any</b> threshold you would be willing to defend.</div>
+</div></div>

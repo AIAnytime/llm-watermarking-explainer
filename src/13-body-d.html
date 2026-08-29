@@ -1,0 +1,363 @@
+<!-- ============================ SEMANTIC ============================ -->
+<div class="sec-head" id="semantic">
+  <div class="eyebrow">11 — 2024–2026 · SemStamp, PASA</div>
+  <h2>Move the mark out of the words</h2>
+  <p>If paraphrase kills token-level marks, stop marking tokens. Mark <em>meaning</em>. A paraphrase preserves the sentence's position in embedding space almost by definition — so put the watermark there instead.</p>
+</div>
+
+<div class="prose">
+  <p>SemStamp works a sentence at a time. Generate a candidate sentence, embed it, hash the embedding with locality-sensitive hashing — random hyperplanes through the space, each one splitting it in half — and read off which cell the sentence landed in. The key declares some cells valid. If the candidate landed in an invalid cell, throw it away and generate another. Repeat until it lands in a valid one.</p>
+  <p>Now paraphrase the sentence. Its vector moves — but only a little, because it still means the same thing. Unless the move crosses a hyperplane, the cell is unchanged and the watermark survives. PASA (2026) formalises the trade-off between detection accuracy, robustness and distortion, and pushes the same idea into a distortion-free framework.</p>
+  <p>The catch is written into the geometry: sentences near a boundary are fragile, rejection sampling costs real generation compute, and the whole thing depends on an embedding model that both parties agree on.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate K</span>
+    <h3>Embedding space, partitioned by the key</h3>
+    <span class="sub">drag the paraphrase radius and watch cells survive or fail</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pKkey">Key</label>
+        <input type="text" id="pKkey" value="anthropic-2026" size="16" spellcheck="false">
+      </div>
+      <div class="ctl">
+        <label for="pKplanes">LSH hyperplanes <b id="pKplanesV">3</b></label>
+        <input type="range" id="pKplanes" min="1" max="6" step="1" value="3">
+      </div>
+      <div class="ctl">
+        <label for="pKsigma">Paraphrase displacement <b id="pKsigmaV">0.15</b></label>
+        <input type="range" id="pKsigma" min="0" max="0.8" step="0.01" value="0.15">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn ghost" id="pKredraw" type="button">Resample sentences</button>
+      </div>
+    </div>
+    <div class="two-a">
+      <div class="canvaswrap"><canvas id="pKcanvas" width="960" height="520" aria-label="Embedding space with LSH partitions"></canvas></div>
+      <div class="stack g12">
+        <div class="tiles" id="pKtiles"></div>
+        <div class="panel stack g8">
+          <span class="eyebrow">Reading</span>
+          <p class="small dim" style="font-family:var(--serif)" id="pKnote"></p>
+        </div>
+        <div class="legend" style="flex-direction:column;gap:6px">
+          <span><i style="background:var(--accent-wash);border:1px solid var(--accent)"></i>valid cells — sentences are accepted here</span>
+          <span><i style="background:var(--green)"></i>sentence survived paraphrase</span>
+          <span><i style="background:var(--red)"></i>paraphrase pushed it across a boundary</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="plate-foot">More hyperplanes means finer cells and more bits per sentence — and a shorter distance to the nearest boundary, so robustness falls. That tension is the entire design space of semantic watermarking, and no one has escaped it yet.</div>
+</div></div>
+
+<!-- ============================ MULTIBIT ============================ -->
+<div class="sec-head" id="multibit">
+  <div class="eyebrow">12 — 2025 · Qu et al., USENIX Security</div>
+  <h2>Not "was this AI", but "whose"</h2>
+  <p>Everything so far answers one bit: marked, or not. Multi-bit watermarking embeds an actual payload — an account ID, a timestamp, a session — into the same statistical slack.</p>
+</div>
+
+<div class="prose">
+  <p>The construction is a natural extension. Hash the context to assign each text position to one slot of the payload. The green list at that position now depends on <em>the value of the bit that slot is carrying</em>. Detection reverses it: bucket the tokens by slot, and for each slot ask which bit hypothesis explains the green counts better. Error-correcting codes mop up the damage from editing.</p>
+  <p>This is the version that makes people nervous, and it is worth being precise about who has shipped it: nobody, publicly. Anthropic's documentation states explicitly that its watermark and key contain no information identifying a person, an organisation, or a conversation — the design is deliberately one bit wide. The capability nonetheless exists in the literature, and the gap between "we chose not to" and "it cannot be done" is worth keeping clear in your head.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate L</span>
+    <h3>Write a payload into prose, then read it back</h3>
+    <span class="sub">8 bits · ×3 repetition code · majority vote</span>
+  </div>
+  <div class="plate-body stack g20">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pLpayload">Payload (0–255) <b id="pLpayloadV">22</b></label>
+        <input type="range" id="pLpayload" min="0" max="255" step="1" value="22">
+      </div>
+      <div class="ctl">
+        <label for="pLlen">Text length <b id="pLlenV">1200</b> tokens</label>
+        <input type="range" id="pLlen" min="200" max="2400" step="50" value="1200">
+      </div>
+      <div class="ctl">
+        <label for="pLdelta">δ <b id="pLdeltaV">3.0</b></label>
+        <input type="range" id="pLdelta" min="0.5" max="8" step="0.25" value="3">
+      </div>
+      <div class="ctl">
+        <label for="pLnoise">Editing damage <b id="pLnoiseV">0%</b></label>
+        <input type="range" id="pLnoise" min="0" max="80" step="2" value="0">
+      </div>
+      <div class="ctl">
+        <label>&nbsp;</label>
+        <button class="btn" id="pLrun" type="button">Encode &amp; decode</button>
+      </div>
+    </div>
+    <div class="three">
+      <div class="panel stack g8">
+        <span class="eyebrow">Written</span>
+        <div class="mono" id="pLsent" style="font-size:19px;letter-spacing:.14em"></div>
+        <span class="tiny faint mono" id="pLsentN"></span>
+      </div>
+      <div class="panel stack g8">
+        <span class="eyebrow">Recovered</span>
+        <div class="mono" id="pLgot" style="font-size:19px;letter-spacing:.14em"></div>
+        <span class="tiny faint mono" id="pLgotN"></span>
+      </div>
+      <div class="panel stack g8">
+        <span class="eyebrow">Result</span>
+        <div class="mono" id="pLres" style="font-size:19px;font-weight:600"></div>
+        <span class="tiny faint mono" id="pLresN"></span>
+      </div>
+    </div>
+    <div class="stack g8">
+      <span class="eyebrow">Per-slot confidence — each of the 24 code positions, before majority vote</span>
+      <div class="chartwrap" id="pLchart"></div>
+    </div>
+    <div class="stack g8">
+      <span class="eyebrow">Carrier text</span>
+      <div class="stream" id="pLstream" style="max-height:170px"></div>
+    </div>
+  </div>
+  <div class="plate-foot">Shorten the text and the slots run out of evidence one by one. A payload needs roughly <b>n × (bits) × (repetition)</b> usable positions to survive — orders of magnitude more text than a single presence/absence flag, which is the practical reason a one-bit design is the one that ships.</div>
+</div></div>
+
+<!-- ============================ POST HOC ============================ -->
+<div class="sec-head" id="posthoc">
+  <div class="eyebrow">13 — 2025 · SAEMark</div>
+  <h2>Watermarking a model you don't control</h2>
+  <p>Every scheme so far reaches into the sampling loop. If all you have is an API that returns finished text, none of them apply.</p>
+</div>
+
+<div class="prose">
+  <p>The post-hoc answer is <strong>selection instead of intervention</strong>. Ask the API for several completions. Push each through a feature extractor — SAEMark uses a sparse autoencoder, the same instrument interpretability researchers use to read features out of activations — and compute a statistic. Keep the completion whose statistic lands nearest the target the key specifies. Discard the rest.</p>
+  <p>Nothing inside the model was touched, so it works on any black box, in any language, on code. The cost is blunt: you paid for k completions and shipped one, and the mark is only as strong as the spread among the candidates you happened to draw.</p>
+  <p>Everything above this point ran on a toy model, because every scheme above this point needs access to the sampling loop. This one does not — so the plate below is wired to <strong>real language models</strong> and does the real thing.</p>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate N</span>
+    <h3>Live: mark a model you have no access to</h3>
+    <span class="sub" id="pNstatus">checking for a live endpoint…</span>
+  </div>
+  <div class="plate-body stack g16">
+    <div id="pNoffline" class="verdict warn" hidden>
+      <span class="dot"></span>
+      <span><b>Live mode is off.</b> This plate calls real models through a local proxy that holds the API key.
+      Run <span class="term">node server.js</span> in the project folder and open
+      <span class="term">http://localhost:8731/</span>. Every other plate on this page runs entirely in the browser and is unaffected.</span>
+    </div>
+
+    <div id="pNlive" hidden class="stack g16">
+      <div class="ctl-row">
+        <div class="ctl" style="flex:1 1 320px">
+          <label for="pNprompt">Prompt</label>
+          <textarea id="pNprompt" rows="2" spellcheck="false">Write four full paragraphs of descriptive prose about a river town at dusk, its streets, its water and its people.</textarea>
+        </div>
+      </div>
+      <div class="flexrow">
+        <span class="eyebrow">Try</span>
+        <button class="chip" data-nprompt="Write four full paragraphs of descriptive prose about a river town at dusk, its streets, its water and its people.">Descriptive prose</button>
+        <button class="chip" data-nprompt="Explain at length, in several paragraphs, why the boiling point of water changes with altitude.">Factual explanation</button>
+        <button class="chip" data-nprompt="Write a long, heavily commented JavaScript module for linked-list operations: insert, reverse, detect a cycle.">Code</button>
+        <button class="chip" data-nprompt="List the first ten prime numbers and nothing else.">Near-zero entropy</button>
+      </div>
+      <div class="ctl-row">
+        <div class="ctl">
+          <label for="pNmodel">Model</label>
+          <div class="seg" id="pNmodel" role="group" aria-label="Model"></div>
+        </div>
+        <div class="ctl">
+          <label for="pNseg">Segments S <b id="pNsegV">4</b></label>
+          <input type="range" id="pNseg" min="1" max="8" step="1" value="4">
+        </div>
+        <div class="ctl">
+          <label for="pNk">Candidates per segment k <b id="pNkV">6</b></label>
+          <input type="range" id="pNk" min="2" max="16" step="1" value="6">
+        </div>
+        <div class="ctl">
+          <label for="pNtok">Tokens per segment <b id="pNtokV">70</b></label>
+          <input type="range" id="pNtok" min="30" max="160" step="10" value="70">
+        </div>
+        <div class="ctl">
+          <label for="pNtemp">Temperature <b id="pNtempV">1.00</b></label>
+          <input type="range" id="pNtemp" min="0" max="1.6" step="0.05" value="1">
+        </div>
+        <div class="ctl">
+          <label for="pNkey">Watermark key <span class="faint">(stays in your browser)</span></label>
+          <input type="text" id="pNkey" value="anthropic-2026" size="16" spellcheck="false">
+        </div>
+        <div class="ctl">
+          <label>&nbsp;</label>
+          <div class="flexrow">
+            <button class="btn" id="pNrun" type="button">Generate &amp; mark</button>
+            <button class="btn ghost" id="pNsend" type="button" disabled>Send to detector</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tiles" id="pNtiles"></div>
+      <div class="verdict" id="pNverdict"><span class="dot"></span><span>Press <b>Generate &amp; mark</b>. For each segment the server asks the model for k continuations; your browser scores them with your key and keeps the best one, then asks for the next segment. The model is never modified — only the choice of draft is.</span></div>
+
+      <div class="two-a">
+        <div class="stack g8">
+          <div class="flexrow">
+            <span class="eyebrow">Selected output</span>
+            <span class="spacer"></span>
+            <span class="legend">
+              <span><i style="background:var(--green-wash);border:1px solid var(--green)"></i>scores above chance</span>
+              <span><i style="background:transparent;border:1px dotted var(--ink-3)"></i>repeated context, not counted</span>
+            </span>
+          </div>
+          <div class="stream" id="pNstream" style="max-height:280px"></div>
+          <span class="eyebrow" style="margin-top:6px">Control — same pipeline, same pools, no selection</span>
+          <div class="stream" id="pNbase" style="max-height:150px"></div>
+        </div>
+        <div class="stack g10">
+          <span class="eyebrow">Evidence accumulating, segment by segment</span>
+          <div class="chartwrap" id="pNcurve"></div>
+          <div class="legend">
+            <span><i style="background:var(--s1)"></i>selected</span>
+            <span><i style="background:var(--s2)"></i>unselected control</span>
+          </div>
+          <span class="eyebrow" style="margin-top:4px">Last pool — k real continuations, ranked by your key</span>
+          <div class="chartwrap" id="pNpool"></div>
+        </div>
+      </div>
+
+      <div class="panel"><p class="small dim" style="font-family:var(--serif)" id="pNnote">—</p></div>
+    </div>
+  </div>
+  <div class="plate-foot">This is the genuine construction, not a simulation of it: real continuations from a real model, selected by a real keyed statistic, with a control document built from the same pools by taking an arbitrary draft each time. Why selection has to be done <b>per segment</b>: picking the best of k whole documents buys only about <b>√(2·ln k)</b> ≈ 1.4σ at k = 8, no matter how long the document is. Selecting S times independently compounds that to roughly <b>√S · √(2·ln k)</b>, which is what turns an unusable 1.4 into a decisive 4. That is exactly the "inference-time scaling" in SAEMark’s title, and it is paid for in API calls: S × k of them. One caveat on fidelity — the published method scores candidates with sparse-autoencoder features rather than the g-values used here; the selection logic is identical, the feature is not.</div>
+</div></div>
+
+<div class="callout">
+  <span class="lbl">The common thread</span>
+  Green lists bias the logits. Gumbel biases the dice. Tournament biases the referee. Semantic marks bias which sentence is accepted. Post-hoc marks bias which draft is shipped. Every one of them is the same move: <strong>take a decision the model was free to make either way, and make it a function of a secret.</strong>
+</div>
+
+<!-- ============================ CLAIMS ============================ -->
+<div class="sec-head" id="claims">
+  <div class="eyebrow">14 — Read this part twice</div>
+  <h2>What a detection actually proves</h2>
+  <p>The technology is sound. The inferences people will draw from it mostly are not. Anthropic's own documentation spends more words on this than on the mechanism, and it is worth restating: a positive detection says <strong>Claude was probably involved in producing these words</strong>. It does not say who wrote the document.</p>
+</div>
+
+<div class="prose">
+  <ul>
+    <li><strong>It cannot distinguish authorship from assistance.</strong> A human draft that Claude tightened carries a mark on the words Claude chose. A wholly Claude-written essay carries a mark too. The statistic is the same shape; only its magnitude differs, and magnitude is also driven by length and entropy.</li>
+    <li><strong>A negative proves nothing at all.</strong> No mark is the expected result for short text, factual text, translated text, heavily edited text, text from another model, and text from a model version predating the rollout.</li>
+    <li><strong>It is not a general AI detector.</strong> It detects <em>this key</em>. Text from any other system, watermarked or not, is null to it.</li>
+    <li><strong>Translation cuts both ways.</strong> Text that Claude translates is watermarked, because Claude chose every word. Watermarked text translated by something else loses the mark, because someone else chose the words.</li>
+    <li><strong>Adversaries are not the hard case; ordinary use is.</strong> Someone deliberately laundering text will succeed. The people who will be wrongly accused are those whose honest writing was lightly polished, and whose result reads as ambiguous.</li>
+  </ul>
+</div>
+
+<div class="wrap"><div class="plate">
+  <div class="plate-head">
+    <span class="pnum">Plate M</span>
+    <h3>Claim checker</h3>
+    <span class="sub">what you may and may not say out loud</span>
+  </div>
+  <div class="plate-body stack g16">
+    <div class="ctl-row">
+      <div class="ctl">
+        <label for="pMz">Reported z <b id="pMzV">4.5</b></label>
+        <input type="range" id="pMz" min="-1" max="12" step="0.1" value="4.5">
+      </div>
+      <div class="ctl">
+        <label for="pMlen">Document length <b id="pMlenV">450</b> tokens</label>
+        <input type="range" id="pMlen" min="20" max="2000" step="10" value="450">
+      </div>
+      <div class="ctl">
+        <label for="pMedit">Known human editing</label>
+        <div class="seg" id="pMedit" role="group" aria-label="Editing"></div>
+      </div>
+    </div>
+    <div class="tiles" id="pMtiles"></div>
+    <div class="stack g10" id="pMclaims"></div>
+  </div>
+  <div class="plate-foot">The p-value is exact and the inference is not. Everything above the statistic — "therefore the student cheated", "therefore this article is fake" — is a leap the mathematics does not license, and no amount of z will license it.</div>
+</div></div>
+
+<!-- ============================ TIMELINE ============================ -->
+<div class="sec-head" id="timeline">
+  <div class="eyebrow">15 — How three years happened</div>
+  <h2>From "obviously impractical" to shipped</h2>
+</div>
+
+<div class="tl">
+  <div class="tl-row"><div class="yr">2022</div><div>
+    <h4>Aaronson's proposal</h4>
+    <p>While at OpenAI, Scott Aaronson describes pseudorandomly-seeded sampling as a way to mark generated text. The idea that becomes the Gumbel family.</p></div></div>
+  <div class="tl-row"><div class="yr">2023</div><div>
+    <h4>KGW — a watermark for large language models</h4>
+    <p>Kirchenbauer, Geiping, Wen and colleagues publish green lists and the z-test. The field has a baseline, two knobs, and an obvious weakness.</p></div></div>
+  <div class="tl-row"><div class="yr">2023</div><div>
+    <h4>Paraphrase breaks everything</h4>
+    <p>Krishna et al. demonstrate that running text through a paraphrase model defeats essentially all detectors of the day. The attack is cheap and requires no knowledge of the scheme.</p></div></div>
+  <div class="tl-row"><div class="yr">2023</div><div>
+    <h4>Distortion-free constructions</h4>
+    <p>Kuditipudi et al. formalise watermarks that provably do not change the output distribution — quality objection answered on paper.</p></div></div>
+  <div class="tl-row"><div class="yr">2024</div><div>
+    <h4>SynthID-Text in <i>Nature</i>, and in production</h4>
+    <p>DeepMind publishes tournament sampling with a live evaluation over ~20 million Gemini responses: no statistically significant change in user thumbs-up/down. "Impractical" stops being a defensible position.</p></div></div>
+  <div class="tl-row"><div class="yr">2024</div><div>
+    <h4>SemStamp</h4>
+    <p>The watermark moves into embedding space via LSH and rejection sampling — the first serious answer to paraphrase.</p></div></div>
+  <div class="tl-row"><div class="yr">2025</div><div>
+    <h4>Payloads and post-hoc marking</h4>
+    <p>Provably robust multi-bit watermarking (USENIX Security) embeds identifiers; SAEMark (NeurIPS) marks black-box API output by selection alone.</p></div></div>
+  <div class="tl-row"><div class="yr">2026</div><div>
+    <h4>Regulation, then rollout</h4>
+    <p>The EU AI Act's Article 50 transparency code of practice makes marking a compliance question. Anthropic announces text watermarking for models released after 2 August 2026 — worldwide, not only in the EU — and confirms it is a version of SynthID-Text. A detection API is stated as forthcoming.</p></div></div>
+  <div class="tl-row"><div class="yr">2026</div><div>
+    <h4>The counterattack begins</h4>
+    <p>PASA claims distortion-freedom and paraphrase resistance together. A layer-inflation attack pushes SynthID's mean g-value back toward 0.5 by re-running the tournament adversarially. Normal service resumes.</p></div></div>
+</div>
+
+<!-- ============================ CLOSE ============================ -->
+<div class="sec-head">
+  <div class="eyebrow">16 — Closing</div>
+  <h2>A whisper, repeated three hundred times</h2>
+</div>
+
+<div class="prose">
+  <p>What makes this technique strange is that there is no artefact to find. There is no hidden character, no metadata, no zero-width space you can strip. The words are exactly the words the model would plausibly have written, one at a time, each individually unremarkable. The mark exists only in aggregate — a bias so slight that no single choice betrays it, and so persistent that three hundred choices cannot hide it.</p>
+  <p>Which is also why it is fragile in exactly the way its makers say it is. Rewrite the words and there is nothing left, because the words <em>were</em> the signal. The mark survives copying, formatting, quoting and moderate editing, and dies to a determined rewrite — a threat model that fits provenance and does not fit enforcement.</p>
+  <p>Whether that distinction survives contact with a school disciplinary committee is not a question anybody has answered with mathematics.</p>
+</div>
+
+<div class="sec-head" id="refs">
+  <div class="eyebrow">Sources</div>
+  <h2>References</h2>
+</div>
+
+<div class="refs">
+  <ol>
+    <li><b>Anthropic</b> — <i>How Claude marks AI-generated content</i> (August 2026). The announcement and the technical follow-up confirming a SynthID-Text-family design, a one-bit payload, and C2PA content credentials for non-text files.</li>
+    <li><b>Kirchenbauer, Geiping, Wen, Katz, Miers, Goldstein</b> — <i>A Watermark for Large Language Models</i>, ICML 2023. Green lists, δ, γ, the z-test.</li>
+    <li><b>Aaronson</b> — talk and notes on watermarking GPT outputs, 2022. The pseudorandom-sampling idea.</li>
+    <li><b>Kuditipudi, Thickstun, Hashimoto, Liang</b> — <i>Robust Distortion-free Watermarks for Language Models</i>, 2023.</li>
+    <li><b>Dathathri et al.</b> — <i>Scalable watermarking for identifying large language model outputs</i>, Nature 2024. SynthID-Text: tournament sampling, distribution-preservation proof, and the ~20M-response live evaluation. Reference implementation is public.</li>
+    <li><b>Krishna, Song, Karpinska, Wieting, Iyyer</b> — <i>Paraphrasing evades detectors of AI-generated text, but retrieval is an effective defense</i>, NeurIPS 2023. The DIPPER attack.</li>
+    <li><b>Hou et al.</b> — <i>SemStamp: A Semantic Watermark with Paraphrastic Robustness for Text Generation</i>, NAACL 2024.</li>
+    <li><b>Ai &amp; He</b> — <i>PASA: A Principled Embedding-Space Watermarking Approach for LLM-Generated Text under Semantic-Invariant Attacks</i>, ICML 2026.</li>
+    <li><b>Qu et al.</b> — <i>Provably Robust Multi-bit Watermarking for AI-generated Text</i>, USENIX Security 2025.</li>
+    <li><b>Yu et al.</b> — <i>SAEMark: Multi-bit LLM Watermarking with Inference-Time Scaling</i>, NeurIPS 2025.</li>
+    <li><b>Liu et al.</b> — <i>A Survey of Text Watermarking in the Era of Large Language Models</i>, ACM Computing Surveys 2024.</li>
+    <li><b>Kaito Sugimoto</b> — the Zenn article this explainer was built from, including the Gumbel worked example and the tournament-sampling walkthrough.</li>
+  </ol>
+</div>
+
+<footer class="pf">
+  <div class="col stack g12">
+    <p class="small dim">Built as a working model, not a summary. The language model here is a slot grammar with a few hundred words and explicit per-position distributions — small enough to be transparent, real enough that every z-score, KL divergence and decoded payload on this page was computed in your browser from the key you typed.</p>
+    <p class="tiny faint mono">Nothing on this page communicates with a server. The schemes are faithful to the published constructions in structure; the vocabulary, the model and the scale are toys.</p>
+  </div>
+</footer>
+</div><!-- /wrap -->

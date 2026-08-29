@@ -1,0 +1,12 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# local scratch
+session.txt
+.claude/settings.local.json
+
+# os
+.DS_Store
+node_modules/
