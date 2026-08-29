@@ -3,6 +3,10 @@
 An interactive explainer for **LLM text watermarking** — the technique Anthropic
 shipped for Claude in August 2026, and the ten years of research behind it.
 
+**→ [Open the page](https://aianytime.github.io/llm-watermarking-explainer/)**
+&nbsp;·&nbsp; thirteen of the fourteen plates run entirely in the browser; the
+live plate needs `server.js` for its API proxy.
+
 Everything on the page is computed in the browser from the key you type. There
 are no canned outputs, no pre-rendered figures, and no hand-written numbers: the
 z-scores, KL divergences, decoded payloads and attack curves are all produced by
@@ -89,9 +93,10 @@ src/00-head.html     <title> + all CSS (design tokens, light/dark)
 src/1*-body-*.html   page markup, in reading order
 src/50-core.js       the engine: PRF, toy LM, samplers, detectors, chart kit
 src/60-ui.js         one IIFE per plate
-build.sh             concatenates src/ → index.html (+ dev.html for local preview)
+build.sh             concatenates src/ → index.html, dev.html, docs/index.html
 server.js            static server + Groq proxy
 test/sanity.js       30 headless checks on the engine
+docs/                the GitHub Pages copy; rebuilt by build.sh
 ```
 
 `index.html` is self-contained and has no `<html>/<head>/<body>` wrapper, so it
