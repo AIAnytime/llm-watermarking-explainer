@@ -48,6 +48,19 @@ Fourteen interactive plates, following the argument rather than the chronology:
 | M | Claim checker | what a detection does and does not license |
 | **N** | **Live post-hoc** | **selection watermarking against real models via Groq** |
 
+## The plates
+
+Ten of the fourteen, captured from the live page. Every figure below was
+computed by the browser at capture time — no mock-ups.
+
+| | |
+|---|---|
+| **B · The split, and the price of it**<br>key + context → vocabulary partition, and the KL cost of δ<br>![](docs/shots/01-green-lists.png) | **C · Detector bench**<br>paste anything; z-score, p-value, per-token evidence<br>![](docs/shots/02-detector-bench.png) |
+| **D · Did the distribution survive?**<br>Monte Carlo; conditional vs marginal distortion<br>![](docs/shots/03-distortion.png) | **E · Gumbel-max**<br>the rigged draw, and why determinism kills it for chat<br>![](docs/shots/04-gumbel-max.png) |
+| **F · Tournament sampling**<br>the SynthID bracket, seats vs probability<br>![](docs/shots/05-tournament.png) | **G · The lab**<br>full generator + per-token inspector, four schemes<br>![](docs/shots/06-the-lab.png) |
+| **H · Capacity map**<br>per-token entropy; why factual text carries nothing<br>![](docs/shots/07-capacity.png) | **I · Attack bench**<br>paraphrase, adaptive, truncate, translate<br>![](docs/shots/08-attack-bench.png) |
+| **J · Where to put the line**<br>null vs signal, FPR/TPR, evidence ∝ √length<br>![](docs/shots/09-thresholds.png) | **L · Multi-bit**<br>write 8 bits into prose, read them back<br>![](docs/shots/10-multi-bit.png) |
+
 ## The live plate
 
 Plates A–M run a toy slot-grammar language model, because green lists, Gumbel
