@@ -154,3 +154,7 @@ Kirchenbauer et al. (ICML 2023), Aaronson (2022), Kuditipudi et al. (2023),
 Dathathri et al. (Nature 2024), Krishna et al. (NeurIPS 2023), Hou et al. (NAACL
 2024), Ai & He (ICML 2026), Qu et al. (USENIX Security 2025), Yu et al. (NeurIPS
 2025), and Anthropic's own documentation.
+
+## License
+
+Proprietary — all rights reserved. This code is published for viewing and evaluation only; no use, copying, modification, redistribution, commercial use, or use as AI/ML training data without written permission. See [LICENSE](LICENSE). Commercial licensing: aianytime07@gmail.com · sonu@aianytime.net.
